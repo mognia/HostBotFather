@@ -5,22 +5,64 @@ var MongoClient = require('mongodb').MongoClient;
 var url = "mongodb://localhost:27017/hostFather";
 
 
-function CreateUser(tempUsername, tempNum) {
+function CreateUser(tempUsername, tempNum, msg) {
     // console.log(`${tempUsername} : ${tempNum}`);
 
     MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
         if (err) throw err;
         var dbo = db.db('hostFather');
-        let newUser = {userName:tempUsername , Phone:tempNum}
-        dbo.collection('users').insertOne(newUser,function(err,res) {
-            if (err) {
-                console.log(err);
-                
+        //new user object
+        let newUser = { userName: tempUsername, Phone: tempNum }
+        dbo.collection("users").find({ userName: tempUsername }).toArray(function (err, result) {
+            // if (err) throw err;
+            //if userName alredy exist
+            if (result.length != 0) {
+                bot.sendMessage(msg.chat.id, "This user name is alredy exist \nif you registred befor you can login now!", {
+                    "reply_markup": {
+                        "keyboard": [["/login"]],
+                        "one_time_keyboard": true,
+                    }
+                });
+                db.close();
+            } 
+            if (result.length == 0) {
+                //if user name is not exist in next step checking Phone existing
+                dbo.collection("users").find({ Phone: tempNum }).toArray(function (err, result) {
+                    // if (err) throw err;
+                    //if phone number alredy exist
+                    if (result.length != 0) {
+                        bot.sendMessage(msg.chat.id, "This Phone number is alredy exist \nif you registred befor you can login now!", {
+                            "reply_markup": {
+                                "keyboard": [["/login", "New Register Form"]],
+                                "one_time_keyboard": true,
+                            }
+                        });
+                        db.close();
+                    } else {
+
+                        //adding new User to DB
+                        dbo.collection('users').insertOne(newUser, function (err, res) {
+                            // if (err) {
+                            //     console.log(err);
+
+                            // }
+                            bot.sendMessage(msg.chat.id, "cool now you are one of us!", {
+                                "reply_markup": {
+                                    "keyboard": [["/login", "New Register Form"]],
+                                    "one_time_keyboard": true,
+                                }
+                            });
+                            console.log(`${tempUsername} added to db`);
+                            db.close();
+
+                        });
+                    }
+                });
             }
-            console.log(`${tempUsername} added to db`);
-            db.close();
-            
+
         });
+
+
     });
 
 }
@@ -35,8 +77,8 @@ let lastPm;
 //meg to get username from user
 let UsernameLabel = 'Please Enter your User name:';
 let NumLabel = 'Please Enter your Phone Number:';
-let tempUsername='';
-let tempNum='';
+let tempUsername = '';
+let tempNum = '';
 bot.onText(/\/start/, (msg) => {
     //welcome msg and defualt keyboard
     bot.sendMessage(msg.chat.id, "Welcome", {
@@ -126,7 +168,7 @@ bot.on('message', (msg) => {
             }
             else {
                 tempNum = msg.text;
-                CreateUser(tempUsername, tempNum);
+                CreateUser(tempUsername, tempNum, msg);
             }
 
         }
