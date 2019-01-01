@@ -4,11 +4,26 @@ require('dotenv').config()
 var MongoClient = require('mongodb').MongoClient;
 var url = "mongodb://localhost:27017/hostFather";
 
-MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
-    if (err) throw err;
-    var dbo = db.db('hostFather');
-});
 
+function CreateUser(tempUsername, tempNum) {
+    // console.log(`${tempUsername} : ${tempNum}`);
+
+    MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
+        if (err) throw err;
+        var dbo = db.db('hostFather');
+        let newUser = {userName:tempUsername , Phone:tempNum}
+        dbo.collection('users').insertOne(newUser,function(err,res) {
+            if (err) {
+                console.log(err);
+                
+            }
+            console.log(`${tempUsername} added to db`);
+            db.close();
+            
+        });
+    });
+
+}
 
 const token = process.env.BOT_TOKEN;
 
@@ -125,8 +140,3 @@ bot.on('message', (msg) => {
 bot.on('polling_error', (error) => {
     console.log(error);  // => 'EFATAL'
 });
-
-function CreateUser(tempUsername, tempNum) {
-    // console.log(`${tempUsername} : ${tempNum}`);
-    bot.sendMessage(msg.chat.id, "OK let me make your account");
-}
